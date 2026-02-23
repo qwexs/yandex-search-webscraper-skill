@@ -1,0 +1,7 @@
+{
+  "apiKey": "YOUR_YANDEX_SEARCH_API_KEY",
+  "folderId": "YOUR_YANDEX_FOLDER_ID",
+  "region": "225",
+  "language": "ru",
+  "defaultLimit": 10
+}

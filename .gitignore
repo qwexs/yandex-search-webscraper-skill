@@ -1,0 +1,4 @@
+yandex-search/config.json
+node_modules/
+.env
+*.log
