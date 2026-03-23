@@ -5,7 +5,7 @@
  * Smart Web Search - Automatically chooses between Yandex and Brave Search
  * based on query language
  * 
- * Usage: bun smart-search.js "query" [--limit N] [--provider yandex|brave|auto] [--format json|text|markdown]
+ * Usage: bun smart-search.js "query" [--limit N] [--provider yandex|brave|tavily|auto] [--format json|text|markdown]
  */
 
 // Parse arguments
@@ -18,7 +18,7 @@ const scrape = args.includes('--scrape');
 const scrapeTop = parseInt(args.find(arg => arg.startsWith('--scrape-top'))?.split('=')[1] || '3');
 
 if (!query) {
-  console.error('Usage: bun smart-search.js "query" [--limit=N] [--provider=yandex|brave|auto] [--format=json|text|markdown] [--scrape] [--scrape-top=N]');
+  console.error('Usage: bun smart-search.js "query" [--limit=N] [--provider=yandex|brave|tavily|auto] [--format=json|text|markdown] [--scrape] [--scrape-top=N]');
   process.exit(1);
 }
 
@@ -68,6 +68,128 @@ function chooseProvider(query, userChoice) {
  */
 async function searchYandex(query, limit, format) {
   return runCommand('bun', [import.meta.dir + '/search.js', query, `--limit=${limit}`, `--format=${format}`]);
+}
+
+/**
+ * Search using Tavily Search API (via fetch)
+ *
+ * Requires TAVILY_API_KEY environment variable or config.tavilyApiKey.
+ */
+async function searchTavily(query, limit, format) {
+  const tavilyApiKey = process.env.TAVILY_API_KEY || loadTavilyConfigKey();
+  if (!tavilyApiKey) {
+    console.error('ERROR: TAVILY_API_KEY environment variable not set');
+    console.error('Please set TAVILY_API_KEY or add tavilyApiKey to config.json, or use --provider=yandex');
+    process.exit(1);
+  }
+
+  const response = await fetch('https://api.tavily.com/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_key: tavilyApiKey,
+      query: query,
+      max_results: limit,
+      search_depth: 'advanced',
+      include_answer: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Tavily API error ${response.status}: ${text}`);
+  }
+
+  const data = await response.json();
+  const results = (data.results || []).map(r => ({
+    title: r.title,
+    url: r.url,
+    snippet: r.content,
+    domain: new URL(r.url).hostname,
+  }));
+
+  if (format === 'json') {
+    return JSON.stringify({
+      query: query,
+      found: results.length,
+      results: results,
+    }, null, 2);
+  } else if (format === 'markdown') {
+    let output = `# Search Results: "${query}"\n`;
+    output += `Found: ${results.length} results\n\n`;
+
+    results.forEach((result, index) => {
+      output += `## ${index + 1}. ${result.title}\n`;
+      output += `**URL:** ${result.url}\n`;
+      output += `**Domain:** ${result.domain}\n\n`;
+      if (result.snippet) {
+        output += `${result.snippet}\n\n`;
+      }
+      output += `---\n\n`;
+    });
+
+    return output;
+  } else {
+    let output = `Search: "${query}" (found ${results.length} results)\n\n`;
+
+    results.forEach((result, index) => {
+      output += `${index + 1}. ${result.title}\n`;
+      output += `   ${result.url}\n`;
+      if (result.snippet) {
+        output += `   ${result.snippet}\n`;
+      }
+      output += '\n';
+    });
+
+    return output;
+  }
+}
+
+/**
+ * Extract content from URLs using Tavily Extract API.
+ * Used as an alternative to Ollama-based scraping when --provider=tavily.
+ */
+async function tavilyExtract(urls) {
+  const tavilyApiKey = process.env.TAVILY_API_KEY || loadTavilyConfigKey();
+  if (!tavilyApiKey) {
+    console.error('ERROR: TAVILY_API_KEY not set for Tavily Extract');
+    return [];
+  }
+
+  const response = await fetch('https://api.tavily.com/extract', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_key: tavilyApiKey,
+      urls: urls.slice(0, 20),
+    }),
+  });
+
+  if (!response.ok) {
+    console.error(`Tavily Extract error ${response.status}`);
+    return [];
+  }
+
+  const data = await response.json();
+  return (data.results || []).map(r => ({
+    url: r.url,
+    title: '',
+    main_content: r.raw_content || r.content || '',
+    description: '',
+  }));
+}
+
+/**
+ * Load tavilyApiKey from config.json if present
+ */
+function loadTavilyConfigKey() {
+  try {
+    const configPath = import.meta.dir + '/config.json';
+    const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+    return config.tavilyApiKey || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -198,6 +320,39 @@ async function enrichWithScraping(searchOutput, topN) {
 }
 
 /**
+ * Enrich search results with Tavily Extract (alternative to Ollama scraping)
+ */
+async function enrichWithTavilyExtract(searchOutput, topN) {
+  let data;
+  try {
+    data = JSON.parse(searchOutput);
+  } catch {
+    return searchOutput;
+  }
+
+  const urls = (data.results || []).slice(0, topN).map(r => r.url).filter(Boolean);
+  console.error(`[Extracting ${urls.length} URLs via Tavily Extract...]`);
+
+  const extracted = await tavilyExtract(urls);
+  const extractedByUrl = Object.fromEntries(extracted.map(e => [e.url, e]));
+
+  data.results = data.results.map((result) => {
+    const e = extractedByUrl[result.url];
+    if (e && e.main_content && e.main_content.length >= 50) {
+      return {
+        ...result,
+        scraped_title: e.title || result.title,
+        scraped_content: e.main_content,
+        scraped_description: e.description || '',
+      };
+    }
+    return result;
+  });
+
+  return JSON.stringify(data, null, 2);
+}
+
+/**
  * Main function
  */
 async function main() {
@@ -212,12 +367,18 @@ async function main() {
     let result;
     if (selectedProvider === 'yandex') {
       result = await searchYandex(query, limit, fetchFormat);
+    } else if (selectedProvider === 'tavily') {
+      result = await searchTavily(query, limit, fetchFormat);
     } else {
       result = await searchBrave(query, limit, fetchFormat);
     }
 
     if (scrape) {
-      result = await enrichWithScraping(result, scrapeTop);
+      if (selectedProvider === 'tavily') {
+        result = await enrichWithTavilyExtract(result, scrapeTop);
+      } else {
+        result = await enrichWithScraping(result, scrapeTop);
+      }
     }
 
     console.log(result);
