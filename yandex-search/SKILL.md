@@ -24,6 +24,12 @@ node skills/yandex-search/smart-search.js "PostgreSQL indexes" --limit=5
 # Принудительно использовать Brave (если нужно)
 node skills/yandex-search/smart-search.js "query" --provider=brave
 
+# Использовать Tavily Search
+node skills/yandex-search/smart-search.js "query" --provider=tavily
+
+# Tavily Search + Tavily Extract (без Ollama)
+node skills/yandex-search/smart-search.js "NVIDIA RTX 5090" --provider=tavily --scrape
+
 # Поиск + скрапинг топ-3 страниц (полный контент через web-scraper)
 node skills/yandex-search/smart-search.js "NVIDIA RTX 5090" --scrape
 
@@ -34,6 +40,9 @@ node skills/yandex-search/smart-search.js "AMD Zen 6" --scrape --scrape-top=5
 > **`--scrape`** — после поиска берёт топ-N URL и прогоняет каждый через `web-scraper` (Ollama local).
 > Результат: JSON с дополнительными полями `scraped_content`, `scraped_title`, `scraped_description`.
 > Требует запущенный Ollama с моделью `richardyoung/schematron-3b:Q4_K_M`.
+>
+> **`--provider=tavily --scrape`** — использует Tavily Extract API вместо Ollama для извлечения контента.
+> Не требует локального Ollama — всё через облачный API Tavily.
 
 ### Yandex Search напрямую
 
@@ -80,6 +89,18 @@ node skills/yandex-search/search.js "запрос" --output=results.json
 export YANDEX_SEARCH_API_KEY="YOUR_API_KEY"
 export YANDEX_FOLDER_ID="YOUR_FOLDER_ID"
 ```
+
+### Tavily Search (опционально)
+
+Для использования `--provider=tavily` установите ключ API:
+
+```bash
+export TAVILY_API_KEY="tvly-YOUR_API_KEY"
+```
+
+Или добавьте `tavilyApiKey` в `config.json`. Получить ключ можно на https://app.tavily.com (1000 бесплатных запросов/месяц).
+
+Tavily Extract может заменить Ollama-based scraping для пользователей без локального Ollama: `--provider=tavily --scrape`.
 
 ## Формат вывода
 

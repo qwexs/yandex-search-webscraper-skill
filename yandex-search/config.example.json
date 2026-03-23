@@ -3,5 +3,6 @@
   "folderId": "YOUR_YANDEX_FOLDER_ID",
   "region": "225",
   "language": "ru",
-  "defaultLimit": 10
+  "defaultLimit": 10,
+  "tavilyApiKey": "YOUR_TAVILY_API_KEY"
 }
