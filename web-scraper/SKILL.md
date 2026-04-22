@@ -52,6 +52,15 @@ bun skills/web-scraper/scripts/scrape.js \
 
 # Compact JSON (без отступов)
 bun skills/web-scraper/scripts/scrape.js --url https://news.ycombinator.com --compact
+
+# Tavily Extract (no Ollama required, needs TAVILY_API_KEY)
+bun skills/web-scraper/scripts/scrape.js --url https://example.com --extractor tavily
+
+# Tavily Extract with custom query focus
+bun skills/web-scraper/scripts/scrape.js \
+  --url https://blog.com/article \
+  --extractor tavily \
+  --prompt "Extract pricing and features"
 ```
 
 ## Формат вывода
@@ -77,6 +86,8 @@ bun skills/web-scraper/scripts/scrape.js --url https://news.ycombinator.com --co
 
 ## Требования
 
+### Ollama extractor (default)
+
 - **Bun** runtime
 - **Ollama** запущен: `http://localhost:11434`
 - **Модель**: `richardyoung/schematron-3b:Q4_K_M`
@@ -86,8 +97,15 @@ bun skills/web-scraper/scripts/scrape.js --url https://news.ycombinator.com --co
 ollama pull richardyoung/schematron-3b:Q4_K_M
 ```
 
+### Tavily extractor (`--extractor tavily`)
+
+- **Bun** runtime
+- **TAVILY_API_KEY** environment variable (get a key at https://app.tavily.com)
+- No Ollama or local model required
+
 ## Ограничения
 
-- Только статический HTML (JS-рендер не поддерживается)
-- HTML обрезается до 10k символов
-- Требует локальный Ollama
+- Только статический HTML (JS-рендер не поддерживается) — Ollama extractor
+- HTML обрезается до 10k символов — Ollama extractor
+- Требует локальный Ollama — only for default `--extractor ollama`
+- Tavily Extract has a limit of 20 URLs per request and requires an API key
