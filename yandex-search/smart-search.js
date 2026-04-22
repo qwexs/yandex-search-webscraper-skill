@@ -5,7 +5,7 @@
  * Smart Web Search - Automatically chooses between Yandex and Brave Search
  * based on query language
  * 
- * Usage: bun smart-search.js "query" [--limit N] [--provider yandex|brave|auto] [--format json|text|markdown]
+ * Usage: bun smart-search.js "query" [--limit N] [--provider yandex|brave|tavily|auto] [--format json|text|markdown]
  */
 
 // Parse arguments
@@ -18,7 +18,7 @@ const scrape = args.includes('--scrape');
 const scrapeTop = parseInt(args.find(arg => arg.startsWith('--scrape-top'))?.split('=')[1] || '3');
 
 if (!query) {
-  console.error('Usage: bun smart-search.js "query" [--limit=N] [--provider=yandex|brave|auto] [--format=json|text|markdown] [--scrape] [--scrape-top=N]');
+  console.error('Usage: bun smart-search.js "query" [--limit=N] [--provider=yandex|brave|tavily|auto] [--format=json|text|markdown] [--scrape] [--scrape-top=N]');
   process.exit(1);
 }
 
@@ -73,6 +73,83 @@ async function searchYandex(query, limit, format) {
 /**
  * Search using Brave Search API (via curl)
  * 
+ * Note: This requires BRAVE_API_KEY environment variable to be set.
+ */
+/**
+ * Search using Tavily Search API (via native fetch)
+ *
+ * Note: This requires TAVILY_API_KEY environment variable to be set.
+ */
+async function searchTavily(query, limit, format) {
+  if (!process.env.TAVILY_API_KEY) {
+    console.error('ERROR: TAVILY_API_KEY environment variable not set');
+    console.error('Please set TAVILY_API_KEY or use --provider=yandex');
+    process.exit(1);
+  }
+
+  const response = await fetch('https://api.tavily.com/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      api_key: process.env.TAVILY_API_KEY,
+      query: query,
+      max_results: limit,
+      search_depth: 'basic',
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Tavily API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  // Convert to common format
+  const results = (data.results || []).map(r => ({
+    title: r.title,
+    url: r.url,
+    snippet: r.content,
+    domain: new URL(r.url).hostname,
+  }));
+  const found = results.length;
+
+  if (format === 'json') {
+    return JSON.stringify({ query, found, results }, null, 2);
+  } else if (format === 'markdown') {
+    let output = `# Search Results: "${query}"\n`;
+    output += `Found: ${found} results\n\n`;
+
+    results.forEach((result, index) => {
+      output += `## ${index + 1}. ${result.title}\n`;
+      output += `**URL:** ${result.url}\n`;
+      output += `**Domain:** ${result.domain}\n\n`;
+      if (result.snippet) {
+        output += `${result.snippet}\n\n`;
+      }
+      output += `---\n\n`;
+    });
+
+    return output;
+  } else {
+    // text format
+    let output = `Search: "${query}" (found ${found} results)\n\n`;
+
+    results.forEach((result, index) => {
+      output += `${index + 1}. ${result.title}\n`;
+      output += `   ${result.url}\n`;
+      if (result.snippet) {
+        output += `   ${result.snippet}\n`;
+      }
+      output += '\n';
+    });
+
+    return output;
+  }
+}
+
+/**
+ * Search using Brave Search API (via curl)
+ *
  * Note: This requires BRAVE_API_KEY environment variable to be set.
  */
 async function searchBrave(query, limit, format) {
@@ -212,6 +289,8 @@ async function main() {
     let result;
     if (selectedProvider === 'yandex') {
       result = await searchYandex(query, limit, fetchFormat);
+    } else if (selectedProvider === 'tavily') {
+      result = await searchTavily(query, limit, fetchFormat);
     } else {
       result = await searchBrave(query, limit, fetchFormat);
     }

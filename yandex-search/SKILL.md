@@ -24,6 +24,9 @@ node skills/yandex-search/smart-search.js "PostgreSQL indexes" --limit=5
 # Принудительно использовать Brave (если нужно)
 node skills/yandex-search/smart-search.js "query" --provider=brave
 
+# Использовать Tavily Search API
+node skills/yandex-search/smart-search.js "query" --provider=tavily
+
 # Поиск + скрапинг топ-3 страниц (полный контент через web-scraper)
 node skills/yandex-search/smart-search.js "NVIDIA RTX 5090" --scrape
 
