@@ -71,11 +71,6 @@ async function searchYandex(query, limit, format) {
 }
 
 /**
- * Search using Brave Search API (via curl)
- * 
- * Note: This requires BRAVE_API_KEY environment variable to be set.
- */
-/**
  * Search using Tavily Search API (via native fetch)
  *
  * Note: This requires TAVILY_API_KEY environment variable to be set.
@@ -89,9 +84,11 @@ async function searchTavily(query, limit, format) {
 
   const response = await fetch('https://api.tavily.com/search', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.TAVILY_API_KEY}`,
+    },
     body: JSON.stringify({
-      api_key: process.env.TAVILY_API_KEY,
       query: query,
       max_results: limit,
       search_depth: 'basic',

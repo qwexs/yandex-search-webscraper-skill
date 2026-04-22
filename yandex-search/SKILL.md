@@ -84,6 +84,14 @@ export YANDEX_SEARCH_API_KEY="YOUR_API_KEY"
 export YANDEX_FOLDER_ID="YOUR_FOLDER_ID"
 ```
 
+### Tavily Search (--provider=tavily)
+
+Для использования Tavily Search API установите переменную окружения:
+
+```bash
+export TAVILY_API_KEY="YOUR_TAVILY_API_KEY"
+```
+
 ## Формат вывода
 
 **Text (по умолчанию):**
