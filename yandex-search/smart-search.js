@@ -143,15 +143,12 @@ const SCRAPER = import.meta.dir + '/../web-scraper/scripts/scrape.js';
 
 /**
  * Scrape a single URL via web-scraper skill
- * Returns { title, main_content, description } or null on error
+ * Returns clean Markdown or null on error
  */
 async function scrapeUrl(url) {
   try {
-    const out = await runCommand('bun', [SCRAPER, '--url', url, '--compact']);
-    const json = JSON.parse(out.trim());
-    // Skip if no content
-    if (!json.main_content || json.main_content.length < 50) return null;
-    return json;
+    const markdown = (await runCommand('bun', [SCRAPER, '--url', url])).trim();
+    return markdown.length >= 50 ? markdown : null;
   } catch {
     return null;
   }
@@ -176,7 +173,7 @@ async function enrichWithScraping(searchOutput, topN) {
   const scraped = [];
   for (const url of urls) {
     const result = await scrapeUrl(url);
-    console.error(`[scraped ${url.slice(0, 50)}: ${result ? result.main_content?.length + ' chars' : 'null'}]`);
+    console.error(`[scraped ${url.slice(0, 50)}: ${result ? result.length + ' chars' : 'null'}]`);
     scraped.push(result);
   }
 
@@ -186,9 +183,7 @@ async function enrichWithScraping(searchOutput, topN) {
     if (s) {
       return {
         ...result,
-        scraped_title: s.title || result.title,
-        scraped_content: s.main_content,
-        scraped_description: s.description || ''
+        scraped_content: s
       };
     }
     return result;

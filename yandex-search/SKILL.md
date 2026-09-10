@@ -32,8 +32,8 @@ node skills/yandex-search/smart-search.js "AMD Zen 6" --scrape --scrape-top=5
 ```
 
 > **`--scrape`** — после поиска берёт топ-N URL и прогоняет каждый через `web-scraper` (Ollama local).
-> Результат: JSON с дополнительными полями `scraped_content`, `scraped_title`, `scraped_description`.
-> Требует запущенный Ollama с моделью `richardyoung/schematron-3b:Q4_K_M`.
+> Результат: JSON с дополнительным полем `scraped_content` (чистый Markdown).
+> Требует запущенный Ollama с моделью `Whyimhere/ReaderLM-v2:latest`.
 
 ### Yandex Search напрямую
 

@@ -96,9 +96,7 @@ yc iam api-key create --service-account-name search-bot
       "title": "...",
       "url": "...",
       "snippet": "...",
-      "scraped_title": "...",
-      "scraped_content": "полный текст статьи...",
-      "scraped_description": "..."
+      "scraped_content": "# Заголовок\n\nПолный текст статьи в Markdown..."
     }
   ]
 }

@@ -3,7 +3,7 @@
 Two companion OpenClaw agent skills:
 
 - **`yandex-search/`** — Web search via [Yandex Search API](https://yandex.cloud/ru/docs/search-api/). Auto-detects region (Cyrillic → RU, Latin → COM). Includes a `--scrape` flag that enriches results with full page content via the web-scraper skill.
-- **`web-scraper/`** — Token-efficient HTML scraping via local [Ollama](https://ollama.com) model (`richardyoung/schematron-3b`). Extracts structured JSON (title, description, main\_content, links, images, metadata) from any static-HTML page. Auto-detects charset (UTF-8, windows-1251).
+- **`web-scraper/`** — Token-efficient HTML-to-Markdown conversion via local [Ollama](https://ollama.com) model (`Whyimhere/ReaderLM-v2`). Extracts the readable content of static-HTML pages. Auto-detects charset (UTF-8, windows-1251).
 
 ## Why these two together?
 
@@ -12,17 +12,17 @@ Yandex Search returns titles + short snippets. With `--scrape`, it fetches the f
 ```
 Search result snippet: ~50 words
 web_fetch full page:   ~5000–30000 tokens
-web-scraper JSON:      ~300–800 tokens  ✅
+web-scraper Markdown:  compact, content-focused output ✅
 ```
 
 ## Requirements
 
 - [Bun](https://bun.sh) runtime
-- [Ollama](https://ollama.com) running locally with model `richardyoung/schematron-3b:Q4_K_M`
+- [Ollama](https://ollama.com) running locally with model `Whyimhere/ReaderLM-v2:latest`
 - Yandex Cloud account + Search API key (for yandex-search)
 
 ```bash
-ollama pull richardyoung/schematron-3b:Q4_K_M
+ollama pull Whyimhere/ReaderLM-v2
 ```
 
 ## Quick start
@@ -33,14 +33,10 @@ ollama pull richardyoung/schematron-3b:Q4_K_M
 bun web-scraper/scripts/scrape.js --url https://nvworld.ru/
 ```
 
-```json
-{
-  "title": "МИР NVIDIA — продукция NVIDIA, RivaTuner, железо, игры",
-  "main_content": "Согласно новому слуху...",
-  "links": [...],
-  "images": [...],
-  "metadata": {}
-}
+```markdown
+# МИР NVIDIA
+
+Согласно новому слуху...
 ```
 
 ### Yandex search
@@ -79,8 +75,7 @@ yc iam api-key create --service-account-name search-bot
 | Flag | Description |
 |---|---|
 | `--url <url>` | Target URL (required) |
-| `--prompt <text>` | Custom Ollama extraction prompt |
-| `--compact` | Compact JSON output |
+| `--prompt <text>` | Custom HTML-to-Markdown prompt |
 | `--no-retry` | Disable retry on failure |
 
 ### `yandex-search/smart-search.js`
@@ -108,7 +103,7 @@ smart-search.js
   └─ search.js → Yandex API → URLs + snippets
   └─ (--scrape) scrape.js × N
        └─ fetch-html.js → fetch + charset decode + semantic extraction
-       └─ extract.js → Ollama API → structured JSON
+       └─ extract.js → ReaderLM-v2 via Ollama → clean Markdown
 ```
 
 `fetch-html.js` finds the main content block via semantic selectors (`<article>`, `<main>`, `#mw-content-text`, `.post-content`, etc.) before truncating — so Wikipedia, Habr, and similar sites work correctly.

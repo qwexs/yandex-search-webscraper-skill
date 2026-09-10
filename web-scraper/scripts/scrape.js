@@ -2,8 +2,8 @@
 
 /**
  * scrape.js
- * Main entry point: URL → Structured JSON
- * Usage: bun scripts/scrape.js --url <url> [--prompt "custom"] [--compact] [--retry]
+ * Main entry point: URL → clean Markdown
+ * Usage: bun scripts/scrape.js --url <url> [--prompt "custom"] [--retry]
  */
 
 import { spawn } from 'child_process';
@@ -19,16 +19,15 @@ function showUsage() {
   console.error('');
   console.error('Options:');
   console.error('  --url <url>          Target URL to scrape (required)');
-  console.error('  --prompt <text>      Custom extraction prompt (optional)');
-  console.error('  --compact            Output compact JSON instead of pretty-print');
+  console.error('  --prompt <text>      Custom HTML-to-Markdown prompt (optional)');
   console.error('  --retry              Retry once on failure (default: enabled)');
   console.error('  --no-retry           Disable retry on failure');
   console.error('  --help, -h           Show this help');
   console.error('');
   console.error('Examples:');
   console.error('  bun scripts/scrape.js --url https://example.com');
-  console.error('  bun scripts/scrape.js --url https://news.ycombinator.com --compact');
-  console.error('  bun scripts/scrape.js --url https://blog.com/post --prompt "Extract only title and author"');
+  console.error('  bun scripts/scrape.js --url https://news.ycombinator.com');
+  console.error('  bun scripts/scrape.js --url https://blog.com/post --prompt "Keep title and article body"');
   process.exit(1);
 }
 
@@ -36,7 +35,6 @@ function parseArgs(args) {
   const parsed = {
     url: null,
     prompt: null,
-    compact: false,
     retry: true
   };
   
@@ -47,9 +45,6 @@ function parseArgs(args) {
         break;
       case '--prompt':
         parsed.prompt = args[++i];
-        break;
-      case '--compact':
-        parsed.compact = true;
         break;
       case '--retry':
         parsed.retry = true;
@@ -117,11 +112,11 @@ async function scrapeWithRetry(url, prompt, retryEnabled) {
       // Шаг 1: Fetch HTML
       const html = await runScript(fetchScript, [url]);
       
-      // Шаг 2: Extract JSON
+      // Шаг 2: Convert HTML to Markdown with ReaderLM-v2
       const extractArgs = prompt ? ['--prompt', prompt] : [];
-      const json = await runScript(extractScript, extractArgs, html);
+      const markdown = await runScript(extractScript, extractArgs, html);
       
-      return json;
+      return markdown;
       
     } catch (error) {
       lastError = error;
@@ -153,31 +148,12 @@ async function main() {
   }
   
   try {
-    const jsonOutput = await scrapeWithRetry(config.url, config.prompt, config.retry);
-    
-    // Форматируем вывод
-    if (config.compact) {
-      const parsed = JSON.parse(jsonOutput);
-      console.log(JSON.stringify(parsed));
-    } else {
-      console.log(jsonOutput);
-    }
+    const markdown = await scrapeWithRetry(config.url, config.prompt, config.retry);
+    process.stdout.write(markdown.endsWith('\n') ? markdown : markdown + '\n');
     
   } catch (error) {
     console.error(`\nError: ${error.message}`);
     
-    // Возвращаем пустой JSON при ошибке
-    const errorJson = {
-      title: "",
-      description: "",
-      main_content: "",
-      links: [],
-      images: [],
-      metadata: {},
-      error: error.message
-    };
-    
-    console.log(JSON.stringify(errorJson, null, config.compact ? 0 : 2));
     process.exit(1);
   }
 }
