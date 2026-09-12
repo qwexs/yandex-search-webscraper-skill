@@ -12,8 +12,10 @@ from dataclasses import asdict, dataclass
 from typing import Any, Callable
 
 BLOCK_MARKERS = re.compile(
-    r"captcha|cf-chl|challenge-platform|cloudflare ray id|access denied|"
-    r"enable javascript and cookies|verify you are human|too many requests",
+    r"cf-chl|challenge-platform|cloudflare ray id|cdn-cgi/challenge|"
+    r"<title>\s*(?:just a moment|access denied|attention required)|"
+    r"enable javascript and cookies to continue|verify you are human|"
+    r"g-recaptcha|h-captcha|data-sitekey",
     re.IGNORECASE,
 )
 SPA_MARKERS = re.compile(
@@ -21,6 +23,18 @@ SPA_MARKERS = re.compile(
     r"data-reactroot|ng-version|window\.__NUXT__",
     re.IGNORECASE,
 )
+CONTENT_SELECTORS = (
+    "#mw-content-text",
+    ".mw-parser-output",
+    "article",
+    "main",
+    '[role="main"]',
+    ".post-content",
+    ".entry-content",
+    ".article-content",
+    ".article-body",
+)
+DATA_IMAGE = re.compile(r"!\[[^\]]*\]\(data:image/[^)]+\)", re.IGNORECASE)
 
 
 @dataclass
@@ -77,13 +91,29 @@ def response_title(response: Any) -> str | None:
         return None
 
 
+def selector_exists(response: Any, selector: str) -> bool:
+    try:
+        return bool(response.css(selector))
+    except Exception:
+        return False
+
+
+def clean_markdown(markdown: str) -> str:
+    markdown = DATA_IMAGE.sub("", markdown)
+    return re.sub(r"\n{3,}", "\n\n", markdown).strip()
+
+
 def to_markdown(response: Any, selector: str | None) -> str:
-    kwargs = {"css_selector": selector} if selector else {"main_content_only": True}
-    return str(response.markdown(**kwargs)).strip()
+    selected = selector or next(
+        (candidate for candidate in CONTENT_SELECTORS if selector_exists(response, candidate)),
+        None,
+    )
+    kwargs = {"css_selector": selected} if selected else {"main_content_only": True}
+    return clean_markdown(str(response.markdown(**kwargs)))
 
 
 def looks_blocked(status: int | None, text: str) -> bool:
-    return status in {401, 403, 407, 429, 503} or bool(BLOCK_MARKERS.search(text[:100_000]))
+    return status in {401, 403, 407, 429, 503} or bool(BLOCK_MARKERS.search(text[:50_000]))
 
 
 def needs_browser(text: str, markdown: str, min_content: int) -> bool:

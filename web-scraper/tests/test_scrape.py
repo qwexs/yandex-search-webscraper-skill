@@ -15,17 +15,22 @@ SPEC.loader.exec_module(scrape)
 
 
 class FakeResponse:
-    def __init__(self, text, markdown, status=200, url="https://final.example/"):
+    def __init__(self, text, markdown, status=200, url="https://final.example/", selectors=()):
         self.text = text
         self._markdown = markdown
         self.status = status
         self.url = url
+        self.selectors = set(selectors)
+        self.markdown_kwargs = None
 
     def markdown(self, **kwargs):
+        self.markdown_kwargs = kwargs
         return self._markdown
 
     def css(self, selector):
-        return SimpleNamespace(get=lambda: "Example title")
+        if selector == "title::text":
+            return SimpleNamespace(get=lambda: "Example title")
+        return [object()] if selector in self.selectors else []
 
 
 def args(**overrides):
@@ -67,6 +72,18 @@ class ScrapeTests(TestCase):
         self.assertEqual(result.strategy, "stealth")
         self.assertFalse(result.blocked)
 
+    def test_incidental_captcha_word_is_not_a_block(self):
+        article = FakeResponse(
+            "<article>This long article discusses captcha research.</article>",
+            "# Research\n\nThis long article discusses captcha research in detail.",
+        )
+        with patch.object(scrape, "fetch_http", return_value=article), \
+             patch.object(scrape, "fetch_dynamic") as dynamic:
+            result = scrape.scrape(args())
+        self.assertFalse(result.blocked)
+        self.assertEqual(result.strategy, "http")
+        dynamic.assert_not_called()
+
     def test_forced_mode_does_not_fallback(self):
         short = FakeResponse("<div>short</div>", "Short")
         with patch.object(scrape, "fetch_http", return_value=short), \
@@ -74,3 +91,13 @@ class ScrapeTests(TestCase):
             result = scrape.scrape(args(mode="http"))
         self.assertEqual(result.strategy, "http")
         dynamic.assert_not_called()
+
+    def test_article_selector_and_data_images_are_cleaned(self):
+        response = FakeResponse(
+            "<article>content</article>",
+            "# Article\n\n![pixel](data:image/png;base64,AAAA)\n\nText",
+            selectors={"article"},
+        )
+        markdown = scrape.to_markdown(response, None)
+        self.assertEqual(response.markdown_kwargs, {"css_selector": "article"})
+        self.assertNotIn("data:image", markdown)
