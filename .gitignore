@@ -1,4 +1,7 @@
 yandex-search/config.json
 node_modules/
 .env
+.venv/
 *.log
+__pycache__/
+*.py[cod]

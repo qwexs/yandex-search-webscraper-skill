@@ -16,9 +16,20 @@ const provider = args.find(arg => arg.startsWith('--provider'))?.split('=')[1] |
 const format = args.find(arg => arg.startsWith('--format'))?.split('=')[1] || 'text';
 const scrape = args.includes('--scrape');
 const scrapeTop = parseInt(args.find(arg => arg.startsWith('--scrape-top'))?.split('=')[1] || '3');
+const scrapeMode = args.find(arg => arg.startsWith('--scrape-mode'))?.split('=')[1] || 'auto';
+const scrapeConcurrency = parseInt(args.find(arg => arg.startsWith('--scrape-concurrency'))?.split('=')[1] || '2');
+
+if (!['auto', 'http', 'dynamic', 'stealth'].includes(scrapeMode)) {
+  console.error(`Invalid --scrape-mode: ${scrapeMode}`);
+  process.exit(1);
+}
+if (!Number.isInteger(scrapeConcurrency) || scrapeConcurrency < 1) {
+  console.error('--scrape-concurrency must be a positive integer');
+  process.exit(1);
+}
 
 if (!query) {
-  console.error('Usage: bun smart-search.js "query" [--limit=N] [--provider=yandex|brave|auto] [--format=json|text|markdown] [--scrape] [--scrape-top=N]');
+  console.error('Usage: bun smart-search.js "query" [--limit=N] [--provider=yandex|brave|auto] [--format=json|text|markdown] [--scrape] [--scrape-top=N] [--scrape-mode=auto|http|dynamic|stealth] [--scrape-concurrency=N]');
   process.exit(1);
 }
 
@@ -139,25 +150,46 @@ async function searchBrave(query, limit, format) {
   }
 }
 
-const SCRAPER = import.meta.dir + '/../web-scraper/scripts/scrape.js';
+const SCRAPER = import.meta.dir + '/../web-scraper/scripts/scrape.py';
 
 /**
  * Scrape a single URL via web-scraper skill
  * Returns clean Markdown or null on error
  */
-async function scrapeUrl(url) {
+async function scrapeUrl(url, mode) {
   try {
-    const markdown = (await runCommand('bun', [SCRAPER, '--url', url])).trim();
-    return markdown.length >= 50 ? markdown : null;
-  } catch {
-    return null;
+    const output = await runCommand('python', [SCRAPER, '--url', url, '--mode', mode]);
+    return JSON.parse(output);
+  } catch (error) {
+    return {
+      url,
+      markdown: null,
+      strategy: null,
+      status: null,
+      blocked: false,
+      elapsed_ms: 0,
+      error: error.message,
+    };
   }
+}
+
+async function mapLimit(items, concurrency, mapper) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await mapper(items[index], index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
 }
 
 /**
  * Enrich search results with scraped page content
  */
-async function enrichWithScraping(searchOutput, topN) {
+async function enrichWithScraping(searchOutput, topN, mode, concurrency) {
   let data;
   try {
     data = JSON.parse(searchOutput);
@@ -169,21 +201,28 @@ async function enrichWithScraping(searchOutput, topN) {
   const urls = (data.results || []).slice(0, topN).map(r => r.url).filter(Boolean);
   console.error(`[Scraping ${urls.length} URLs...]`);
 
-  // Scrape sequentially — Ollama не любит параллельные запросы
-  const scraped = [];
-  for (const url of urls) {
-    const result = await scrapeUrl(url);
-    console.error(`[scraped ${url.slice(0, 50)}: ${result ? result.length + ' chars' : 'null'}]`);
-    scraped.push(result);
-  }
+  const scraped = await mapLimit(urls, Math.max(1, concurrency), async (url) => {
+    const result = await scrapeUrl(url, mode);
+    console.error(`[scraped ${url.slice(0, 50)}: ${result.strategy || 'failed'}, ${result.markdown?.length || 0} chars]`);
+    return result;
+  });
 
   // Merge scraped content into results
   data.results = data.results.map((result, i) => {
-    const s = scraped[i];
-    if (s) {
+    const scrapeResult = scraped[i];
+    if (scrapeResult) {
       return {
         ...result,
-        scraped_content: s
+        scraped_content: scrapeResult.markdown,
+        scrape: {
+          final_url: scrapeResult.final_url,
+          title: scrapeResult.title,
+          strategy: scrapeResult.strategy,
+          status: scrapeResult.status,
+          blocked: scrapeResult.blocked,
+          elapsed_ms: scrapeResult.elapsed_ms,
+          error: scrapeResult.error,
+        },
       };
     }
     return result;
@@ -212,7 +251,7 @@ async function main() {
     }
 
     if (scrape) {
-      result = await enrichWithScraping(result, scrapeTop);
+      result = await enrichWithScraping(result, scrapeTop, scrapeMode, scrapeConcurrency);
     }
 
     console.log(result);

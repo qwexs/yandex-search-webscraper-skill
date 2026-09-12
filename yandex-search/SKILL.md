@@ -31,9 +31,9 @@ node skills/yandex-search/smart-search.js "NVIDIA RTX 5090" --scrape
 node skills/yandex-search/smart-search.js "AMD Zen 6" --scrape --scrape-top=5
 ```
 
-> **`--scrape`** — после поиска берёт топ-N URL и прогоняет каждый через `web-scraper` (Ollama local).
+> **`--scrape`** — после поиска берёт топ-N URL и прогоняет каждый через Scrapling (`HTTP → JS browser → stealth`).
 > Результат: JSON с дополнительным полем `scraped_content` (чистый Markdown).
-> Требует запущенный Ollama с моделью `Whyimhere/ReaderLM-v2:latest`.
+> LLM не используется. Для JS/stealth режимов требуются браузеры из `scrapling install`.
 
 ### Yandex Search напрямую
 
@@ -60,6 +60,8 @@ node skills/yandex-search/search.js "запрос" --output=results.json
 - **--format FORMAT** — формат вывода: `json`, `text`, `markdown` (по умолчанию: text)
 - **--scrape** — дополнительно скрапить страницы через web-scraper (полный контент)
 - **--scrape-top N** — сколько страниц скрапить (по умолчанию: 3)
+- **--scrape-mode MODE** — `auto`, `http`, `dynamic`, `stealth` (по умолчанию: `auto`)
+- **--scrape-concurrency N** — число параллельных страниц (по умолчанию: 2)
 
 ## Настройка
 

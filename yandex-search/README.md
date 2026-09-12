@@ -28,6 +28,8 @@ bun skills/yandex-search/smart-search.js "запрос" --scrape --scrape-top=5
 | `--provider=PROVIDER` | `yandex`, `brave` | yandex |
 | `--scrape` | Скрапить контент топ-N страниц | — |
 | `--scrape-top=N` | Сколько страниц скрапить | 3 |
+| `--scrape-mode=MODE` | `auto`, `http`, `dynamic`, `stealth` | auto |
+| `--scrape-concurrency=N` | Параллельные страницы | 2 |
 
 ### search.js
 
@@ -96,7 +98,14 @@ yc iam api-key create --service-account-name search-bot
       "title": "...",
       "url": "...",
       "snippet": "...",
-      "scraped_content": "# Заголовок\n\nПолный текст статьи в Markdown..."
+      "scraped_content": "# Заголовок\n\nПолный текст статьи в Markdown...",
+      "scrape": {
+        "strategy": "http",
+        "status": 200,
+        "blocked": false,
+        "elapsed_ms": 318,
+        "error": null
+      }
     }
   ]
 }
