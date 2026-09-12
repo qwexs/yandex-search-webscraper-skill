@@ -24,6 +24,9 @@ node skills/yandex-search/smart-search.js "PostgreSQL indexes" --limit=5
 # Принудительно использовать Brave (если нужно)
 node skills/yandex-search/smart-search.js "query" --provider=brave
 
+# Использовать Tavily Search API
+node skills/yandex-search/smart-search.js "query" --provider=tavily
+
 # Поиск + скрапинг топ-3 страниц (полный контент через web-scraper)
 node skills/yandex-search/smart-search.js "NVIDIA RTX 5090" --scrape
 
@@ -79,6 +82,14 @@ node skills/yandex-search/search.js "запрос" --output=results.json
 ```bash
 export YANDEX_SEARCH_API_KEY="YOUR_API_KEY"
 export YANDEX_FOLDER_ID="YOUR_FOLDER_ID"
+```
+
+### Tavily Search (--provider=tavily)
+
+Для использования Tavily Search API установите переменную окружения:
+
+```bash
+export TAVILY_API_KEY="YOUR_TAVILY_API_KEY"
 ```
 
 ## Формат вывода
