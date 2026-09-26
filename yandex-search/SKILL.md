@@ -9,11 +9,6 @@ description: Search the web using Yandex Search API. Supports all languages with
 
 ## Использование
 
-> **Runtime:** все JavaScript-скрипты этого навыка запускаются только через `bun`.
-> Не используйте `node`: код использует Bun API (`Bun.spawn`, `Bun.file`, `Bun.write`).
-
-### Smart Search (всегда через Yandex)
-
 ```bash
 # Поиск на любом языке через Yandex (автоопределение региона)
 bun skills/yandex-search/smart-search.js "ваш запрос"
