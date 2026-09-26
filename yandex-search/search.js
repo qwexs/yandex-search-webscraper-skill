@@ -9,10 +9,20 @@
 // Parse command line arguments
 const args = process.argv.slice(2);
 const query = args.find(arg => !arg.startsWith('--'));
-const limit = parseInt(args.find(arg => arg.startsWith('--limit'))?.split('=')[1] || '10');
-const region = args.find(arg => arg.startsWith('--region'))?.split('=')[1] || 'auto';
-const outputFile = args.find(arg => arg.startsWith('--output'))?.split('=')[1];
-const format = args.find(arg => arg.startsWith('--format'))?.split('=')[1] || 'text';
+
+function getOption(name, fallback) {
+  const inline = args.find(arg => arg.startsWith(`${name}=`));
+  if (inline) return inline.slice(name.length + 1);
+
+  const index = args.indexOf(name);
+  const value = index >= 0 ? args[index + 1] : undefined;
+  return value && !value.startsWith('--') ? value : fallback;
+}
+
+const limit = parseInt(getOption('--limit', '10'));
+const region = getOption('--region', 'auto');
+const outputFile = getOption('--output');
+const format = getOption('--format', 'text');
 
 if (!query) {
   console.error('Usage: bun search.js "query" [--limit=N] [--region=REGION] [--output=FILE] [--format=FORMAT]');

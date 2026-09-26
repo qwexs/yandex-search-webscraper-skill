@@ -11,13 +11,23 @@
 // Parse arguments
 const args = process.argv.slice(2);
 const query = args.find(arg => !arg.startsWith('--'));
-const limit = parseInt(args.find(arg => arg.startsWith('--limit'))?.split('=')[1] || '10');
-const provider = args.find(arg => arg.startsWith('--provider'))?.split('=')[1] || 'auto';
-const format = args.find(arg => arg.startsWith('--format'))?.split('=')[1] || 'text';
+
+function getOption(name, fallback) {
+  const inline = args.find(arg => arg.startsWith(`${name}=`));
+  if (inline) return inline.slice(name.length + 1);
+
+  const index = args.indexOf(name);
+  const value = index >= 0 ? args[index + 1] : undefined;
+  return value && !value.startsWith('--') ? value : fallback;
+}
+
+const limit = parseInt(getOption('--limit', '10'));
+const provider = getOption('--provider', 'auto');
+const format = getOption('--format', 'text');
 const scrape = args.includes('--scrape');
-const scrapeTop = parseInt(args.find(arg => arg.startsWith('--scrape-top'))?.split('=')[1] || '3');
-const scrapeMode = args.find(arg => arg.startsWith('--scrape-mode'))?.split('=')[1] || 'auto';
-const scrapeConcurrency = parseInt(args.find(arg => arg.startsWith('--scrape-concurrency'))?.split('=')[1] || '2');
+const scrapeTop = parseInt(getOption('--scrape-top', '3'));
+const scrapeMode = getOption('--scrape-mode', 'auto');
+const scrapeConcurrency = parseInt(getOption('--scrape-concurrency', '2'));
 
 if (!['auto', 'http', 'dynamic', 'stealth'].includes(scrapeMode)) {
   console.error(`Invalid --scrape-mode: ${scrapeMode}`);

@@ -9,26 +9,29 @@ description: Search the web using Yandex Search API. Supports all languages with
 
 ## Использование
 
+> **Runtime:** все JavaScript-скрипты этого навыка запускаются только через `bun`.
+> Не используйте `node`: код использует Bun API (`Bun.spawn`, `Bun.file`, `Bun.write`).
+
 ### Smart Search (всегда через Yandex)
 
 ```bash
 # Поиск на любом языке через Yandex (автоопределение региона)
-node skills/yandex-search/smart-search.js "ваш запрос"
+bun skills/yandex-search/smart-search.js "ваш запрос"
 
 # Кириллица → Yandex (российский поиск)
-node skills/yandex-search/smart-search.js "PostgreSQL индексы" --limit=5
+bun skills/yandex-search/smart-search.js "PostgreSQL индексы" --limit=5
 
 # Латиница → Yandex (международный поиск)
-node skills/yandex-search/smart-search.js "PostgreSQL indexes" --limit=5
+bun skills/yandex-search/smart-search.js "PostgreSQL indexes" --limit=5
 
 # Принудительно использовать Brave (если нужно)
-node skills/yandex-search/smart-search.js "query" --provider=brave
+bun skills/yandex-search/smart-search.js "query" --provider=brave
 
 # Поиск + скрапинг топ-3 страниц (полный контент через web-scraper)
-node skills/yandex-search/smart-search.js "NVIDIA RTX 5090" --scrape
+bun skills/yandex-search/smart-search.js "NVIDIA RTX 5090" --scrape
 
 # Скрапинг топ-5 страниц
-node skills/yandex-search/smart-search.js "AMD Zen 6" --scrape --scrape-top=5
+bun skills/yandex-search/smart-search.js "AMD Zen 6" --scrape --scrape-top=5
 ```
 
 > **`--scrape`** — после поиска берёт топ-N URL и прогоняет каждый через Scrapling (`HTTP → JS browser → stealth`).
@@ -39,16 +42,16 @@ node skills/yandex-search/smart-search.js "AMD Zen 6" --scrape --scrape-top=5
 
 ```bash
 # Простой поиск
-node skills/yandex-search/search.js "ваш запрос"
+bun skills/yandex-search/search.js "ваш запрос"
 
 # С ограничением результатов
-node skills/yandex-search/search.js "запрос" --limit=5
+bun skills/yandex-search/search.js "запрос" --limit=5
 
 # Только с определённого региона
-node skills/yandex-search/search.js "запрос" --region=ru
+bun skills/yandex-search/search.js "запрос" --region=ru
 
 # Сохранить результаты в файл
-node skills/yandex-search/search.js "запрос" --output=results.json
+bun skills/yandex-search/search.js "запрос" --output=results.json
 ```
 
 ## Параметры
@@ -131,13 +134,13 @@ Claude-flow includes comprehensive benchmarking capabilities...
 
 ```bash
 # Поиск технической документации
-node skills/yandex-search/search.js "PostgreSQL индексы BRIN" --limit 5
+bun skills/yandex-search/search.js "PostgreSQL индексы BRIN" --limit=5
 
 # Поиск новостей
-node skills/yandex-search/search.js "Anthropic Claude 4.5" --region ru
+bun skills/yandex-search/search.js "Anthropic Claude 4.5" --region=ru
 
 # Поиск с сохранением
-node skills/yandex-search/search.js "Yandex Cloud API" --output yc-docs.json --format json
+bun skills/yandex-search/search.js "Yandex Cloud API" --output=yc-docs.json --format=json
 ```
 
 ## Ограничения
@@ -147,6 +150,10 @@ node skills/yandex-search/search.js "Yandex Cloud API" --output yc-docs.json --f
 - Стоимость по тарифам Yandex Cloud
 
 ## Troubleshooting
+
+**`Bun is not defined`:**
+- Скрипт был запущен через `node`; повторите команду через `bun`
+- Проверьте установку командой `bun --version`
 
 **"Unknown api key":**
 - Проверьте, что используется `Authorization: Api-Key`, а не `Bearer`
