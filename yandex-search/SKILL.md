@@ -9,6 +9,8 @@ description: Search the web using Yandex Search API. Supports all languages with
 
 ## Использование
 
+### Smart Search (всегда через Yandex)
+
 ```bash
 # Поиск на любом языке через Yandex (автоопределение региона)
 bun skills/yandex-search/smart-search.js "ваш запрос"
