@@ -1,9 +1,10 @@
 # yandex-search-webscraper-skill
 
-Two companion OpenClaw skills:
+Three companion OpenClaw skills:
 
 - **`yandex-search/`** — localized web discovery through Yandex Search API.
 - **`web-scraper/`** — static, JavaScript, and stealth fetching through Scrapling with deterministic Markdown output.
+- **`you-search/`** — keyless web discovery through the You.com MCP server (free profile; optional API key for the authenticated profile).
 
 No LLM or Ollama service is involved.
 
@@ -29,6 +30,8 @@ The browser fallbacks run headlessly and do not need a desktop UI. Browser binar
 - Bun (Yandex orchestration)
 - Yandex Cloud Search API credentials
 
+`you-search` needs no credentials; it runs against the keyless You.com free profile by default.
+
 ```bash
 python -m pip install -r web-scraper/requirements.txt
 scrapling install
@@ -41,6 +44,8 @@ python web-scraper/scripts/scrape.py --url https://example.com --pretty
 bun yandex-search/smart-search.js "AMD Zen 6" --limit=5
 bun yandex-search/smart-search.js "AMD Zen 6" --scrape --scrape-top=3
 bun yandex-search/smart-search.js "query" --scrape --scrape-mode=dynamic
+bun you-search/search.js "AMD Zen 6" --limit=5
+bun yandex-search/smart-search.js "query" --provider=you
 ```
 
 ## Scraper output
@@ -64,6 +69,10 @@ bun yandex-search/smart-search.js "query" --scrape --scrape-mode=dynamic
 ## Yandex configuration
 
 Copy `yandex-search/config.example.json` to `yandex-search/config.json`, or set `YANDEX_SEARCH_API_KEY` and `YANDEX_FOLDER_ID`.
+
+## You.com configuration
+
+None required — `you-search` uses the keyless `https://api.you.com/mcp?profile=free` endpoint by default. Set `YDC_API_KEY` (or copy `you-search/config.example.json` to `you-search/config.json`) to use the authenticated profile.
 
 ## Test
 
