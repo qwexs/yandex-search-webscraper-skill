@@ -1,4 +1,5 @@
 yandex-search/config.json
+you-search/config.json
 node_modules/
 .env
 .venv/

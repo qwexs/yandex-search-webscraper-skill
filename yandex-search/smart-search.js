@@ -5,7 +5,7 @@
  * Smart Web Search - Automatically chooses between Yandex and Brave Search
  * based on query language
  * 
- * Usage: bun smart-search.js "query" [--limit N] [--provider yandex|brave|auto] [--format json|text|markdown]
+ * Usage: bun smart-search.js "query" [--limit N] [--provider yandex|brave|you|auto] [--format json|text|markdown]
  */
 
 // Parse arguments
@@ -39,7 +39,7 @@ if (!Number.isInteger(scrapeConcurrency) || scrapeConcurrency < 1) {
 }
 
 if (!query) {
-  console.error('Usage: bun smart-search.js "query" [--limit=N] [--provider=yandex|brave|auto] [--format=json|text|markdown] [--scrape] [--scrape-top=N] [--scrape-mode=auto|http|dynamic|stealth] [--scrape-concurrency=N]');
+  console.error('Usage: bun smart-search.js "query" [--limit=N] [--provider=yandex|brave|you|auto] [--format=json|text|markdown] [--scrape] [--scrape-top=N] [--scrape-mode=auto|http|dynamic|stealth] [--scrape-concurrency=N]');
   process.exit(1);
 }
 
@@ -89,6 +89,15 @@ function chooseProvider(query, userChoice) {
  */
 async function searchYandex(query, limit, format) {
   return runCommand('bun', [import.meta.dir + '/search.js', query, `--limit=${limit}`, `--format=${format}`]);
+}
+
+/**
+ * Search using You.com (via the you-search skill)
+ *
+ * Note: Keyless by default (You.com free profile); set YDC_API_KEY for the authenticated profile.
+ */
+async function searchYou(query, limit, format) {
+  return runCommand('bun', [import.meta.dir + '/../you-search/search.js', query, `--limit=${limit}`, `--format=${format}`]);
 }
 
 /**
@@ -256,6 +265,8 @@ async function main() {
     let result;
     if (selectedProvider === 'yandex') {
       result = await searchYandex(query, limit, fetchFormat);
+    } else if (selectedProvider === 'you') {
+      result = await searchYou(query, limit, fetchFormat);
     } else {
       result = await searchBrave(query, limit, fetchFormat);
     }

@@ -24,6 +24,9 @@ bun skills/yandex-search/smart-search.js "PostgreSQL indexes" --limit=5
 # Принудительно использовать Brave (если нужно)
 bun skills/yandex-search/smart-search.js "query" --provider=brave
 
+# Поиск через You.com (бесплатный профиль, без API-ключа)
+bun skills/yandex-search/smart-search.js "query" --provider=you
+
 # Поиск + скрапинг топ-3 страниц (полный контент через web-scraper)
 bun skills/yandex-search/smart-search.js "NVIDIA RTX 5090" --scrape
 
